@@ -11,6 +11,7 @@ Docker + Flask + Redis
 ```
 CMD ["bash", "run.sh", "{controller name}"]
 ```
+
 3. build docker image from Dockerfile:
 ```
 docker build -t WebEng-{controller name}-controller:latest .

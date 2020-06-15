@@ -26,16 +26,16 @@ def authentication_required(f):
     :return: authentication function as a decorator
     """
     @wraps(f)
-    def check_authentication(*args, **kwargs):
+    def check_authentication(self, *args, **kwargs):
         # Every HTTP request should contain 'USER-ID' header
         user_id = request.headers.get('USER-ID')
 
         # Raise 401 Unauthorized error if user id is not set
         if user_id is None:
-            abort(401, description="User ID unauthorized")
+            abort(401, description="User ID not authenticated")
 
         # Finish the remaining process
-        return f(*args, **kwargs)
+        return f(self, *args, **kwargs)
     return check_authentication
 
 
@@ -46,9 +46,18 @@ def authorization_required(f):
     :return: authorization function as a decorator
     """
     @wraps(f)
-    def check_authorization(*args, **kwargs):
-        # TODO
-        return f(*args, **kwargs)
+    @authentication_required
+    def check_authorization(self, *args, **kwargs):
+        user_id = request.headers.get('USER-ID')
+
+        # self.redis should be redis client
+        assert isinstance(self.redis, redis.client.Redis)
+
+        # Raise 409 Conflict error if the resource is already bound to another user
+        if self.redis.exists('user_id') and self.redis.get('user_id') != user_id:
+            abort(409, description="Resource bound to another user")
+
+        return f(self, *args, **kwargs)
     return check_authorization
 
 
@@ -71,45 +80,51 @@ class BindAPI(MethodView):
         }
         return jsonify(data), 200  # TODO response body
 
-    @authentication_required
     def post(self, action):
         """
         post: receive bind or unbind action from users
         :param action: command on the resource, which is specified on URL
         :return: [flask HTTP response in JSON] action acceptance result
         """
-        # Read user id from HTTP request header
-        user_id = request.headers.get('USER-ID')
-
         # Bind action
         if action == "bind":
-            # Raise 409 Conflict error if the resource is already bound to someone
-            if self.redis.exists('user_id') and self.redis.get('user_id') != user_id:
-                abort(409, description="Resource bound to another user")
-
-            # Bind user successfully
-            else:
-                self.redis.set('user_id', user_id)
-                return 'User#%s is bound.' % user_id, 200  # TODO response body
+            return self.bind()
 
         # Unbind action
         elif action == "unbind":
-            # Raise 400 Bad Request error if no one is bound
-            if not self.redis.exists('user_id'):
-                abort(400, description="No one bound")
-
-            # Raise 409 Conflict error if the requested user is not the current owner of the resource
-            if self.redis.get('user_id') != user_id:
-                abort(409, description="Resource bound to another user")
-
-            # Unbind user successfully
-            else:
-                self.redis.delete('user_id')
-                return 'User#%s is unbound.' % user_id, 200  # TODO response body
+            return self.unbind()
 
         # Reject other actions
         else:
             abort(400, description="Invalid action")
+
+    @authentication_required
+    def bind(self):
+        # Read user id from HTTP request header
+        user_id = request.headers.get('USER-ID')
+
+        # Raise 409 Conflict error if the resource is already bound to another user
+        if self.redis.exists('user_id') and self.redis.get('user_id') != user_id:
+            abort(409, description="Resource bound to another user")
+
+        # Bind user successfully
+        else:
+            self.redis.set('user_id', user_id)
+            return 'User#%s is bound.' % user_id, 200  # TODO response body
+
+    @authorization_required
+    def unbind(self):
+        # Read user id from HTTP request header
+        user_id = request.headers.get('USER-ID')
+
+        # Raise 400 Bad Request error if no one is bound
+        if not self.redis.exists('user_id'):
+            abort(400, description="No one bound")
+
+        # Unbind user successfully
+        else:
+            self.redis.delete('user_id')
+            return 'User#%s is unbound.' % user_id, 200  # TODO response body
 
     @staticmethod
     def add_url_rule(_app):
@@ -131,6 +146,7 @@ class ResourceAPI(MethodView):
     def __init__(self):
         self.redis = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
+    @abstractmethod
     def get(self):
         """
         get: returns resource's status information
@@ -138,7 +154,6 @@ class ResourceAPI(MethodView):
         """
 
     @abstractmethod
-    @authentication_required
     def post(self, action):
         """
         post: controller actions that controls connected resource

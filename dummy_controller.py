@@ -3,6 +3,9 @@ from base import BindAPI, ResourceAPI, authentication_required
 
 
 class DummyAPI(ResourceAPI):
+    def get(self):
+        pass
+
     @authentication_required
     def post(self, action):
         pass
