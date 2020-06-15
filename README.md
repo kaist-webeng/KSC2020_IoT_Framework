@@ -8,6 +8,9 @@ Docker + Flask + Redis
 
 1. install [docker](https://www.docker.com/)
 2. modify Dockerfile's CMD line: choose appropriate filename of controller to run
+```
+CMD ["bash", "run.sh", "{controller name}"]
+```
 3. build docker image from Dockerfile:
 ```
 docker build -t WebEng-{controller name}-controller:latest .
@@ -20,14 +23,16 @@ docker run -d -p 5000:5000 WebEng-{controller name}-controller:latest
 
 ---
 ## How to add a new controller
-You can copy <code>dummy.py</code>, or following below instruction
+You can copy <code>dummy_controller.py</code>, or following below instruction
 1. add a new controller file, name as <code>{controller name}_controller.py</code>
 2. from <code>base.py</code>, import <code>ResourceAPI</code> and define new resource's API by inherit it, name as <code>class {controller name}API</code>
 3. implement all abstract methods
 4. write execution code of flask app
 
 ---
-## TODO
+### TODO
 - [ ] WSGI
 - [ ] Visualization of the architecture
+
+### Issue
 - [ ] Docker compose (divide Flask, Redis, NginX to different containers)
