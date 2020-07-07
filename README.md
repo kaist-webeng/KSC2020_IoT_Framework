@@ -14,12 +14,12 @@ CMD ["bash", "run.sh", "{controller name}"]
 
 3. build docker image from Dockerfile:
 ```
-docker build -t WebEng-{controller name}-controller:latest .
+docker build -t webeng-{controller name}-controller:latest .
 ```
 
 4. run the docker image to construct a container:
 ```
-docker run -d -p 5000:5000 WebEng-{controller name}-controller:latest
+docker run -d -p 5000:5000 webeng-{controller name}-controller:latest
 ```
 
 ---
