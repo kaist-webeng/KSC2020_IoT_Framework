@@ -54,7 +54,7 @@ def authorization_required(f):
         assert isinstance(self.redis, redis.client.Redis)
 
         # Raise 409 Conflict error if the resource is already bound to another user
-        if self.redis.exists('user_id') and self.redis.get('user_id') != user_id:
+        if not self.redis.exists('user_id') or self.redis.get('user_id') != user_id:
             abort(409, description="Resource bound to another user")
 
         return f(self, *args, **kwargs)
