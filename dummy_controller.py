@@ -1,12 +1,12 @@
 from flask import Flask
-from base import BindAPI, ResourceAPI, authentication_required
+from base import BindAPI, ResourceAPI, authorization_required
 
 
 class DummyAPI(ResourceAPI):
     def get(self):
         pass
 
-    @authentication_required
+    @authorization_required
     def post(self, action):
         pass
 
