@@ -19,9 +19,8 @@ class DummyAPI(ResourceAPI):
 
 
 # Run server
-if __name__ == "__main__":
-    app = Flask(__name__)
-    BindAPI.add_url_rule(app)
-    DummyAPI.add_url_rule(app)
+app = Flask(__name__)
+BindAPI.add_url_rule(app)
+DummyAPI.add_url_rule(app)
 
-    app.run(host='0.0.0.0', port=5000)
+# app.run(host='0.0.0.0', port=5000)

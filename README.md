@@ -1,7 +1,7 @@
 # WebEng IoT Testbed: resource-controller
 
 Source codes of resource controllers in WebEng IoT testbed, written in Python  
-Docker + Flask + Redis
+Docker + Flask + Redis + Gunicorn
 
 ---
 ## How to run a controller
@@ -19,8 +19,10 @@ docker build -t webeng-{controller name}-controller:latest .
 
 4. run the docker image to construct a container:
 ```
-docker run -d -p 5000:5000 webeng-{controller name}-controller:latest
+docker run -d -p 8000:8000 webeng-{controller name}-controller:latest
 ```
+The format of port option is `{host's port}:{contrainer's port}`.  
+You can also set a name of the container by using `--name {name}` option.
 
 ---
 ## How to add a new controller
@@ -32,8 +34,16 @@ You can copy <code>dummy_controller.py</code>, or following below instruction
 
 ---
 ### TODO
-- [ ] WSGI
+- [x] WSGI: Gunicorn integrated
 - [ ] Visualization of the architecture
 
 ### Issue
-- [ ] Docker compose (divide Flask, Redis, NginX to different containers)
+- [x] Docker compose (divide Flask, Redis, NginX to different containers): maintain one container for each controller
+
+---
+### Frequently used commands of Docker
+- `docker ps` shows every containers. `-a` option shows stopped containers. `-l` option shows latest containers.
+- `docker logs {container ID}` shows execution logs of the container.
+- `docker kill {container ID}` kills the container by sending a `SIGKILL` signal.
+- `docker system prune` removes all stopped containers, dangling images, unused networks.
+
