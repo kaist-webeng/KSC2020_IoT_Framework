@@ -3,6 +3,7 @@ from base import BindAPI, ResourceAPI, authorization_required
 
 
 class DummyAPI(ResourceAPI):
+    @authorization_required
     def get(self):
         pass
 

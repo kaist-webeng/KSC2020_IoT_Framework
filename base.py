@@ -15,9 +15,14 @@ import redis
 
 from abc import abstractmethod
 from functools import wraps
-from flask import abort, request, jsonify
+from flask import abort, request, jsonify, make_response
 from flask.views import MethodView
 
+def abort_json(status_code, error_message):
+    response = make_response(jsonify({
+        "errorMessage": error_message
+    }), status_code)
+    abort(response)
 
 def authentication_required(f):
     """
@@ -32,7 +37,7 @@ def authentication_required(f):
 
         # Raise 401 Unauthorized error if user id is not set
         if user_id is None:
-            abort(401, description="User ID not authenticated")
+            abort_json(401, "Authentication Failed.")
 
         # Finish the remaining process
         return f(self, *args, **kwargs)
@@ -50,12 +55,13 @@ def authorization_required(f):
     def check_authorization(self, *args, **kwargs):
         user_id = request.headers.get('USER-ID')
 
-        # self.redis should be redis client
-        assert isinstance(self.redis, redis.client.Redis)
+        # Raise 401 error if the resource is not bound
+        if not self.redis.exists('user_id'):
+            abort_json(401, "Resource not bound.")
 
         # Raise 409 Conflict error if the resource is already bound to another user
-        if not self.redis.exists('user_id') or self.redis.get('user_id') != user_id:
-            abort(409, description="Resource bound to another user")
+        if self.redis.get('user_id') != user_id:
+            abort_json(409, "Resource bound to another user.")
 
         return f(self, *args, **kwargs)
     return check_authorization
@@ -74,11 +80,11 @@ class BindAPI(MethodView):
         get: responses currently bound user's ID
         :return: [flask HTTP response in JSON] bound user's ID
         """
-        data = {
+        response = make_response(jsonify({
             "bound": self.redis.exists('user_id'),
-            "user_id": self.redis.get('user_id')
-        }
-        return jsonify(data), 200  # TODO response body
+            "userId": self.redis.get('user_id')
+        }), 200)
+        return response
 
     def post(self, action):
         """
@@ -96,7 +102,7 @@ class BindAPI(MethodView):
 
         # Reject other actions
         else:
-            abort(400, description="Invalid action")
+            abort_json(400, "Invalid action.")
 
     @authentication_required
     def bind(self):
@@ -105,26 +111,35 @@ class BindAPI(MethodView):
 
         # Raise 409 Conflict error if the resource is already bound to another user
         if self.redis.exists('user_id') and self.redis.get('user_id') != user_id:
-            abort(409, description="Resource bound to another user")
+            abort_json(409, "Resource bound to another user.")
 
         # Bind user successfully
         else:
             self.redis.set('user_id', user_id)
-            return 'User#%s is bound.' % user_id, 200  # TODO response body
+            
+            response = make_response(jsonify({
+                "userId": self.redis.get('user_id')
+            }), 200)
+            return response
 
     @authorization_required
     def unbind(self):
         # Read user id from HTTP request header
         user_id = request.headers.get('USER-ID')
 
-        # Raise 400 Bad Request error if no one is bound
+        # Raise 401 error if the resource is not bound
         if not self.redis.exists('user_id'):
-            abort(400, description="No one bound")
+            abort_json(401, "Resource not bound.")
 
         # Unbind user successfully
         else:
+            user_id = self.redis.get('user_id')
             self.redis.delete('user_id')
-            return 'User#%s is unbound.' % user_id, 200  # TODO response body
+
+            response = make_response(jsonify({
+                "userId": user_id
+            }), 200)
+            return response
 
     @staticmethod
     def add_url_rule(_app):
