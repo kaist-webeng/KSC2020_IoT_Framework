@@ -21,7 +21,7 @@ docker build -t webeng-{controller name}-controller:latest .
 ```
 docker run -d -p 8000:8000 webeng-{controller name}-controller:latest
 ```
-The format of port option is `{host's port}:{contrainer's port}`.  
+The format of port option is `{host's port}:{container's port}`.  
 You can also set a name of the container by using `--name {name}` option.
 
 ---
