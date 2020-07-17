@@ -46,4 +46,4 @@ You can copy <code>dummy_controller.py</code>, or following below instruction
 - `docker logs {container ID}` shows execution logs of the container.
 - `docker kill {container ID}` kills the container by sending a `SIGKILL` signal.
 - `docker system prune` removes all stopped containers, dangling images, unused networks.
-
+- `docker rm $(docker ps -a -q)` removes all docker containers
