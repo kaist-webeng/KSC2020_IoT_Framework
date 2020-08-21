@@ -1,34 +1,36 @@
-# WebEng IoT Testbed: resource-controller
+# WebEng IoT Testbed: testbed-service-providers
 
-Source codes of resource controllers in WebEng IoT testbed, written in Python  
+Source codes of resource controllers and services in WebEng IoT testbed, written in Python  
 Docker + Flask + Redis + Gunicorn
 
 ---
-## How to run a controller
+## How to run a provider
 
 1. install [docker](https://www.docker.com/)
-2. modify Dockerfile's CMD line: choose appropriate filename of controller to run
+2. modify Dockerfile's CMD line: choose appropriate filename of provider to run
 ```
-CMD ["bash", "run.sh", "{controller name}"]
+CMD ["bash", "run.sh", "{provider name}-{provider type}"]
 ```
+Type can be `resource` or `service`
+For instance: `CMD ["bash", "run.sh", "switchbot-resource"]`
 
 3. build docker image from Dockerfile:
 ```
-docker build -t webeng-{controller name}-controller:latest .
+docker build -t webeng-{provider name}-{provider type}:latest .
 ```
 
 4. run the docker image to construct a container:
 ```
-docker run -d -p 8000:8000 webeng-{controller name}-controller:latest
+docker run -d -p 8000:8000 webeng-{provider name}-{provider type}:latest
 ```
 The format of port option is `{host's port}:{container's port}`.  
 You can also set a name of the container by using `--name {name}` option.
 
 ---
-## How to add a new controller
-You can copy <code>dummy_controller.py</code>, or following below instruction
-1. add a new controller file, name as <code>{controller name}_controller.py</code>
-2. from <code>base.py</code>, import <code>ResourceAPI</code> and define new resource's API by inherit it, name as <code>class {controller name}API</code>
+## How to add a new service provider
+You can copy `dummy_resource.py`, or `dummy_service.py` and following below instruction
+1. add a new controller file, name as `{provider name}_{provider type}.py`
+2. from `base.py`, import `ResourceAPI` or `ServiceAPI` and define new resource's or service's API by inherit it, name as `class {provider name}{provider type}API` with capitalization
 3. implement all abstract methods
 4. write execution code of flask app
 
@@ -47,3 +49,7 @@ You can copy <code>dummy_controller.py</code>, or following below instruction
 - `docker kill {container ID}` kills the container by sending a `SIGKILL` signal.
 - `docker system prune` removes all stopped containers, dangling images, unused networks.
 - `docker rm $(docker ps -a -q)` removes all docker containers
+
+---
+### Notes
+- Containers cannot communicate directly to each other. Be cautious
