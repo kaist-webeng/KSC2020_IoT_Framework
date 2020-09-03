@@ -199,3 +199,35 @@ def add_action(name, title, description, output, url, security="basic_sc"):
         f.__action = action_dict
         return f
     return decorator
+
+
+def logger(f):
+    """
+    logger: a decorator to enable logging to a method
+    :param f: original function to decorate
+    :return: function with logger attached
+    """
+    @wraps(f)
+    def log(self, *args, **kwargs):
+
+        # TODO currently, simple rest API is provided to collect raw data
+        url = "http://143.248.47.96:8000/api/data/"
+
+        # Get user ID
+        user_id = self.redis.get('user_id')
+
+        # Action
+        result = f(self, *args, **kwargs)
+
+        data = {
+            "device_id": "Dummy",  # TODO
+            "user_id": str(user_id),
+            "function_name": f.__name__,
+            "function_argument": str(args) + str(kwargs),
+            "function_result": str(result)
+        }
+
+        requests.post(url=url, data=data)
+
+        return result
+    return log

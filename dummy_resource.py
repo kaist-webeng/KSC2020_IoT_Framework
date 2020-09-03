@@ -1,6 +1,6 @@
-from flask import Flask
+from flask import Flask, make_response, jsonify
 from base import BindAPI, ResourceAPI
-from utils import authorization_required, register_api, add_property, add_action
+from utils import authorization_required, register_api, add_property, add_action, logger
 
 
 @register_api(
@@ -24,8 +24,9 @@ class DummyResourceAPI(ResourceAPI):
     @authorization_required
     def post(self, action):
         if action == "example":
-            self.example()
+            return self.example()
 
+    @logger
     @add_action(
         name="example",
         title="Example method of action",
@@ -35,7 +36,9 @@ class DummyResourceAPI(ResourceAPI):
         security="basic_sc"
     )
     def example(self):
-        pass
+        return make_response(jsonify({
+            "result": "success"
+        }), 200)
 
     @staticmethod
     def add_url_rule(_app):
@@ -51,4 +54,4 @@ app = Flask(__name__)
 BindAPI.add_url_rule(app)
 DummyResourceAPI.add_url_rule(app)
 
-# app.run(host='0.0.0.0', port=8001)
+app.run(host='0.0.0.0', port=8001)
