@@ -13,11 +13,12 @@
 """
 import redis
 
+from http import HTTPStatus
 from abc import abstractmethod
-from flask import abort, request, jsonify, make_response
+from flask import request, jsonify, make_response
 from flask.views import MethodView
 
-from utils import abort_json, authentication_required, authorization_required, add_property, add_action
+from utils import abort_json, authentication_required, authorization_required
 
 
 class API(MethodView):
@@ -42,7 +43,7 @@ class BindAPI(API):
         response = make_response(jsonify({
             "bound": self.redis.exists('user_id'),
             "userId": self.redis.get('user_id')
-        }), 200)
+        }), HTTPStatus.OK)
         return response
 
     def post(self, action):
@@ -61,7 +62,7 @@ class BindAPI(API):
 
         # Reject other actions
         else:
-            abort_json(400, "Invalid action.")
+            abort_json(HTTPStatus.BAD_REQUEST, "Invalid action.")
 
     @authentication_required
     def bind(self):
@@ -70,7 +71,7 @@ class BindAPI(API):
 
         # Raise 409 Conflict error if the resource is already bound to another user
         if self.redis.exists('user_id') and self.redis.get('user_id') != user_id:
-            abort_json(409, "Resource bound to another user.")
+            abort_json(HTTPStatus.CONFLICT, "Resource bound to another user.")
 
         # Bind user successfully
         else:
@@ -78,7 +79,7 @@ class BindAPI(API):
             
             response = make_response(jsonify({
                 "userId": self.redis.get('user_id')
-            }), 200)
+            }), HTTPStatus.OK)
             return response
 
     @authorization_required
@@ -88,7 +89,7 @@ class BindAPI(API):
 
         # Raise 401 error if the resource is not bound
         if not self.redis.exists('user_id'):
-            abort_json(401, "Resource not bound.")
+            abort_json(HTTPStatus.UNAUTHORIZED, "Resource not bound.")
 
         # Unbind user successfully
         else:
@@ -97,7 +98,7 @@ class BindAPI(API):
 
             response = make_response(jsonify({
                 "userId": user_id
-            }), 200)
+            }), HTTPStatus.OK)
             return response
 
     @staticmethod

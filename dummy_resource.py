@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from flask import Flask, make_response, jsonify
 from base import BindAPI, ResourceAPI
 from utils import authorization_required, register_api, add_property, add_action, logger
@@ -38,7 +39,7 @@ class DummyResourceAPI(ResourceAPI):
     def example(self):
         return make_response(jsonify({
             "result": "success"
-        }), 200)
+        }), HTTPStatus.OK)
 
     @staticmethod
     def add_url_rule(_app):

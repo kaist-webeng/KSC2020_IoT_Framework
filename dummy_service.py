@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from flask import Flask, jsonify, make_response
 from base import BindAPI, ServiceAPI
 from utils import abort_json, authorization_required, resource_required
@@ -14,7 +15,7 @@ class DummyServiceAPI(ServiceAPI):
         if action == "fake":
             return self.fake()
         else:
-            return abort_json(400, "Invalid action.")
+            return abort_json(HTTPStatus.BAD_REQUEST, "Invalid action.")
 
     @resource_required({
         "name": "dummy",
@@ -25,7 +26,7 @@ class DummyServiceAPI(ServiceAPI):
         response = make_response(jsonify({
             "name": resource["name"],
             "url": resource["url"]
-        }), 200)
+        }), HTTPStatus.OK)
         return response
 
     @staticmethod

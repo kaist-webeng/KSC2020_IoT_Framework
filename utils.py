@@ -1,6 +1,7 @@
 import requests
 import json
 
+from http import HTTPStatus
 from urllib.parse import urljoin
 from functools import wraps
 from flask import abort, request, jsonify, make_response
@@ -26,7 +27,7 @@ def authentication_required(f):
 
         # Raise 401 Unauthorized error if user id is not set
         if user_id is None:
-            abort_json(401, "Authentication Failed.")
+            abort_json(HTTPStatus.UNAUTHORIZED, "Authentication Failed.")
 
         # Finish the remaining process
         return f(self, *args, **kwargs)
@@ -46,11 +47,11 @@ def authorization_required(f):
 
         # Raise 401 error if the resource is not bound
         if not self.redis.exists('user_id'):
-            abort_json(401, "Resource not bound.")
+            abort_json(HTTPStatus.UNAUTHORIZED, "Resource not bound.")
 
         # Raise 409 Conflict error if the resource is already bound to another user
         if self.redis.get('user_id') != user_id:
-            abort_json(409, "Resource bound to another user.")
+            abort_json(HTTPStatus.CONFLICT, "Resource bound to another user.")
 
         return f(self, *args, **kwargs)
     return check_authorization
@@ -78,7 +79,7 @@ def resource_required(resource_description):
             bind_response = requests.post(url=urljoin(base=url, url='user/bind'),
                                           headers=headers)
 
-            if bind_response.status_code == 200:
+            if bind_response.status_code == HTTPStatus.OK:
                 # Binding successful
 
                 resource = {
@@ -97,7 +98,7 @@ def resource_required(resource_description):
             else:
                 # Binding failed
                 # TODO error code
-                abort_json(409, "Resource bound to another user.")
+                abort_json(HTTPStatus.CONFLICT, "Resource bound to another user.")
         return bind_resource
     return decorator
 
