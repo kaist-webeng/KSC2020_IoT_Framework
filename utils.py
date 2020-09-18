@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 
@@ -103,11 +104,9 @@ def resource_required(resource_description):
     return decorator
 
 
-def register_api(identification, title, description):
+def register_api(description):
     """
     register_api: a decorator for decorating API to construct description and register automatically
-    :param identification: ID string of the API
-    :param title: title of the API
     :param description: description of the API
     :return:
     """
@@ -117,8 +116,10 @@ def register_api(identification, title, description):
                 "https://www.w3.org/2019/wot/td/v1",
                 {"@language": "en"}
             ],
-            "id": identification,
-            "title": title,
+            "id": "webeng:{name}:{id}".format(name=os.environ.get('NAME').lower(),
+                                              id=os.environ.get('ID')),
+            "title": "WebEng-{name}".format(name=os.environ.get('NAME')),
+            "url": os.environ.get('URL'),
             "description": description,
             "properties": {},
             "actions": {}
@@ -129,22 +130,28 @@ def register_api(identification, title, description):
                     api_dict["properties"].update(getattr(obj, "__property"))
                 if hasattr(obj, "__action"):
                     api_dict["actions"].update(getattr(obj, "__action"))
-        cls.description = json.dumps(api_dict, indent=4)
-        # TODO register the description to registry
+        cls.description = api_dict
+
+        # Registration
+        # TODO scheme
+        data = {
+            "raw_description": json.dumps(api_dict)
+        }
+
+        requests.post(url='http://143.248.47.96:8000/api/services/', data=data)
 
         return cls
-
     return decorator
 
 
-def add_property(name, title, description, properties, url, security="basic_sc"):
+def add_property(name, title, description, properties, path, security="basic_sc"):
     """
     add_property: a decorator that add a property for API, based on WoT things format
     :param name: name of the property
     :param title: title of the property
     :param description: human-readable short description of the property
     :param properties: sub-properties of the property
-    :param url: url to get the information of the property
+    :param path: url to get the information of the property
     :param security: authorization level of the property
     :return: None
     """
@@ -157,7 +164,7 @@ def add_property(name, title, description, properties, url, security="basic_sc")
                 "properties": properties,
                 "required": list(properties.keys()),
                 "forms": [{
-                    "href": url,
+                    "href": os.environ.get('URL') + path,
                     "htv:methodName": "GET",  # Assume every property is GET
                     "security": security
                 }]
@@ -168,14 +175,14 @@ def add_property(name, title, description, properties, url, security="basic_sc")
     return decorator
 
 
-def add_action(name, title, description, output, url, security="basic_sc"):
+def add_action(name, title, description, output, path, security="basic_sc"):
     """
     add_action: a decorator that add an action for API, based on WoT things format
     :param name: name of the action
     :param title: title of the action
     :param description: human-readable short description of the action
     :param output: a dictionary for the output properties of the action
-    :param url: url to get the information of the action
+    :param path: url to get the information of the action
     :param security: authorization level of the action
     :return: None
     """
@@ -191,7 +198,7 @@ def add_action(name, title, description, output, url, security="basic_sc"):
                 },
                 "required": [list(output.keys())],
                 "forms": [{
-                    "href": url,
+                    "href": os.environ.get('URL') + path,
                     "htv:methodName": "POST",  # Assume every action is POST
                     "security": security
                 }]
@@ -215,16 +222,22 @@ def logger(f):
         url = "http://143.248.47.96:8000/api/data/"
 
         # Get user ID
-        user_id = self.redis.get('user_id')
+        user_id = request.headers.get('USER-ID')
 
         # Action
         result = f(self, *args, **kwargs)
 
         data = {
-            "device_id": "Dummy",  # TODO
+            "type": type(self).__name__,
+            "id": "Dummy",  # TODO
             "user_id": str(user_id),
+            "bounded_user_id": str(self.redis.get('user_id')),
+            "request_ip": str(request.remote_addr),
             "function_name": f.__name__,
-            "function_argument": str(args) + str(kwargs),
+            "function_argument": {
+                "args": str(args),
+                "kwargs": str(kwargs)
+            },
             "function_result": str(result)
         }
 

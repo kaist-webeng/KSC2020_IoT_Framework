@@ -10,4 +10,4 @@ WORKDIR /agent
 RUN pip3 install -r requirements.txt
 
 # change name of resource controller or service: currently "dummy_controller"
-CMD ["bash", "run.sh", "dummy_service"]
+ENTRYPOINT ["bash", "run.sh"]

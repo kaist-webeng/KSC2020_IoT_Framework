@@ -5,18 +5,15 @@ from utils import authorization_required, register_api, add_property, add_action
 
 
 @register_api(
-    identification="webeng:resource:dummy:test",
-    title="WebEng-Resource-Dummy-test",
     description="Dummy resource api"
 )
 class DummyResourceAPI(ResourceAPI):
-    @authorization_required
     @add_property(
         name="resource",
         title="Show resource status",
         description="Example of property method",
         properties={"status": "string"},
-        url="/resource",
+        path="/resource",
         security="basic_sc"
     )
     def get(self):
@@ -33,7 +30,7 @@ class DummyResourceAPI(ResourceAPI):
         title="Example method of action",
         description="Example method of action",
         output={"status": "string"},
-        url="/resource/example",
+        path="/resource/example",
         security="basic_sc"
     )
     def example(self):
@@ -55,4 +52,4 @@ app = Flask(__name__)
 BindAPI.add_url_rule(app)
 DummyResourceAPI.add_url_rule(app)
 
-app.run(host='0.0.0.0', port=8001)
+# app.run(host='0.0.0.0', port=8001)

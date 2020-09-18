@@ -7,24 +7,17 @@ Docker + Flask + Redis + Gunicorn
 ## How to run a provider
 
 1. install [docker](https://www.docker.com/)
-2. modify Dockerfile's CMD line: choose appropriate filename of provider to run
+2. build docker image from Dockerfile:
 ```
-CMD ["bash", "run.sh", "{provider name}-{provider type}"]
+docker build -t webeng_{provider name}:latest .
 ```
-Type can be `resource` or `service`
-For instance: `CMD ["bash", "run.sh", "switchbot-resource"]`
-
-3. build docker image from Dockerfile:
+3. run the docker image to construct a container:
 ```
-docker build -t webeng-{provider name}-{provider type}:latest .
+docker run -d -p 8000:8000 webeng_{provider name}:latest {provider name} {ID} {URL:PORT}
 ```
-
-4. run the docker image to construct a container:
-```
-docker run -d -p 8000:8000 webeng-{provider name}-{provider type}:latest
-```
-The format of port option is `{host's port}:{container's port}`.  
-You can also set a name of the container by using `--name {name}` option.
+The format of `-p` port option is `{host's port}:{container's port}`.  
+You can also set a name of the container by using `--name {name}` option.  
+For instance, provider ```{provider name}``` is ```dummy_resource```, and it should be same with the file name.
 
 ---
 ## How to add a new service provider
