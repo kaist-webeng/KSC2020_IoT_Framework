@@ -175,7 +175,7 @@ def add_property(name, title, description, properties, path, security="basic_sc"
     return decorator
 
 
-def add_action(name, title, description, output, path, security="basic_sc"):
+def add_action(name, title, description, output, path, security="basic_sc", input=None):
     """
     add_action: a decorator that add an action for API, based on WoT things format
     :param name: name of the action
@@ -184,6 +184,7 @@ def add_action(name, title, description, output, path, security="basic_sc"):
     :param output: a dictionary for the output properties of the action
     :param path: url to get the information of the action
     :param security: authorization level of the action
+    :param input: a dictionary for the input properties of the action
     :return: None
     """
     def decorator(f):
@@ -204,6 +205,13 @@ def add_action(name, title, description, output, path, security="basic_sc"):
                 }]
             }
         }
+        
+        if input is not None:
+            action_dict[name]["input"] = {
+                "type": "object",
+                "properties": input
+            }
+
         f.__action = action_dict
         return f
     return decorator
