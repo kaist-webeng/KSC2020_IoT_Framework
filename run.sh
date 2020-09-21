@@ -3,9 +3,9 @@
 # 1. Run Redis server
 nohup redis-server &
 
-export NAME=$1
-export ID=$2
-export URL=http://$3
+export NAME=$1;
+export ID=$2;
+export URL=http://$3;
 
 # 2. Run Flask along with Gunicorn as a resource controller
 # get controller name from argument. e. g. sh run.sh basic
