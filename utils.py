@@ -85,7 +85,7 @@ def resource_required(resource_description):
 
                 resource = {
                     "name": resource_description["name"],
-                    "url": resource_description["name"]
+                    "url": resource_description["url"]
                 }
 
                 # Service action
