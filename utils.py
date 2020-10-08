@@ -1,5 +1,6 @@
 import os
 import requests
+import redis
 import json
 
 from http import HTTPStatus
@@ -104,9 +105,9 @@ def resource_required(resource_description):
     return decorator
 
 
-def register_api(description):
+def api_description(description):
     """
-    register_api: a decorator for decorating API to construct description and register automatically
+    api_description: a decorator for decorating API to construct description and register automatically
     :param description: description of the API
     :return:
     """
@@ -121,9 +122,21 @@ def register_api(description):
             "title": "WebEng-{name}".format(name=os.environ.get('NAME')),
             "url": os.environ.get('URL'),
             "description": description,
+            "securityDefinitions": {
+                "nosec_sc": {
+                    "scheme": "nosec"
+                },
+                "basic_sc": {
+                    "scheme": "basic",
+                    "in": "header",
+                    "name": "USER-ID"
+                }
+            },
+            "security": "basic_sc",
             "properties": {},
             "actions": {}
         }
+
         for obj in vars(cls).values():
             if callable(obj):
                 if hasattr(obj, "__property"):
@@ -132,16 +145,40 @@ def register_api(description):
                     api_dict["actions"].update(getattr(obj, "__action"))
         cls.description = api_dict
 
-        # Registration
-        # TODO scheme
-        data = {
-            "raw_description": json.dumps(api_dict)
-        }
+        # TODO hard-coded and duplicated call. Better to globally call once
+        db = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
-        requests.post(url='http://143.248.47.96:8000/api/services/', data=data)
+        other_api_dict = json.loads(db.get('description'))
+        if description is None:
+            # Sub API
+            other_api_dict["actions"].update(api_dict["actions"])
+            other_api_dict["properties"].update(api_dict["properties"])
+            api_dict = other_api_dict
+        else:
+            # Main API
+            api_dict["actions"].update(other_api_dict["actions"])
+            api_dict["properties"].update(other_api_dict["properties"])
+
+        db.set('description', json.dumps(api_dict))
 
         return cls
     return decorator
+
+
+def register_api():
+    """
+    register_api: register the description of APIs stored in redis server
+    :return:
+    """
+    db = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+    api_dict = db.get("description")
+    # TODO scheme
+    data = {
+        "raw_description": api_dict
+    }
+
+    # TODO url hard-coded
+    requests.post(url='http://143.248.47.96:8000/api/services/', data=data)
 
 
 def add_property(name, title, description, properties, path, security="basic_sc"):
@@ -232,12 +269,17 @@ def logger(f):
         # Get user ID
         user_id = request.headers.get('USER-ID')
 
+        # Generate request ID
+        import random
+        import string
+        request_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+
         # Action
         result = f(self, *args, **kwargs)
 
         data = {
             "type": type(self).__name__,
-            "id": "Dummy",  # TODO
+            "id": request_id,
             "user_id": str(user_id),
             "bounded_user_id": str(self.redis.get('user_id')),
             "request_ip": str(request.remote_addr),

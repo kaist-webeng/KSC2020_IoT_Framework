@@ -12,14 +12,15 @@
     refer https://flask.palletsprojects.com/en/1.1.x/views/
 """
 import redis
-import os
+import json
+import requests
 
 from http import HTTPStatus
 from abc import abstractmethod
 from flask import request, jsonify, make_response
 from flask.views import MethodView
 
-from utils import abort_json, authentication_required, authorization_required
+from utils import abort_json, authentication_required, authorization_required, api_description, add_property, add_action
 
 
 class API(MethodView):
@@ -30,12 +31,54 @@ class API(MethodView):
         self.redis = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
 
+class DescriptionAPI(API):
+    """
+    DescriptionAPI: API for return the description of the service or resource
+    """
+
+    def get(self):
+        """
+        get: responses description of the service or resource
+        :return:
+        """
+        return make_response(self.redis.get('description'), HTTPStatus.OK)
+
+    @staticmethod
+    def add_url_rule(_app):
+        """
+        add_url_rule: add urls to flask app automatically
+        :param _app: flask app
+        :return: None
+        """
+        view = DescriptionAPI.as_view('description_api')
+        # Description API View
+        _app.add_url_rule('/', view_func=view, methods=['GET', ])
+
+
+@api_description(
+    description=None
+)
 class BindAPI(API):
     """
-    BindAPI: API for bind/unbind user to the resource.
+    BindAPI: API for bind/unbind user to the service or resource
     After a user is bound to the resource, the user becomes the owner of the resource until unbound himself/herself
     """
 
+    @add_property(
+        name="user",
+        title="Show bound user info",
+        description="It shows whether the user is bound and the user's ID",
+        properties={
+            "bound": {
+                "type": "integer"
+            },
+            "userId": {
+                "type": "string"
+            }
+        },
+        path="/user",
+        security="nosec_sc"
+    )
     def get(self):
         """
         get: responses currently bound user's ID
@@ -65,6 +108,21 @@ class BindAPI(API):
         else:
             abort_json(HTTPStatus.BAD_REQUEST, "Invalid action.")
 
+    @add_action(
+        name="bind",
+        title="Bind resource",
+        description="It binds the resource to the user who requested it",
+        output={
+            "type": "object",
+            "properties": {
+                "userId": {
+                    "type": "string"
+                }
+            },
+            "required": ["userId"]
+        },
+        path="/user/bind"
+    )
     @authentication_required
     def bind(self):
         # Read user id from HTTP request header
@@ -83,6 +141,21 @@ class BindAPI(API):
             }), HTTPStatus.OK)
             return response
 
+    @add_action(
+        name="unbind",
+        title="Unbind resource",
+        description="It unbinds the user currently bound to the resource",
+        output={
+            "type": "object",
+            "properties": {
+                "userId": {
+                    "type": "string"
+                }
+            },
+            "required": ["userId"]
+        },
+        path="/user/unbind"
+    )
     @authorization_required
     def unbind(self):
         # Read user id from HTTP request header
@@ -111,7 +184,7 @@ class BindAPI(API):
         """
         view = BindAPI.as_view('bind_api')
         # Bind API View
-        _app.add_url_rule('/', view_func=view, methods=['GET', ])
+        _app.add_url_rule('/user', view_func=view, methods=['GET', ])
         _app.add_url_rule('/user/<action>', view_func=view, methods=['POST', ])
 
 

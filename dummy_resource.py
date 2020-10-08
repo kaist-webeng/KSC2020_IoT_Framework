@@ -1,10 +1,10 @@
 from http import HTTPStatus
 from flask import Flask, make_response, jsonify
-from base import BindAPI, ResourceAPI
-from utils import authorization_required, register_api, add_property, add_action, logger
+from base import BindAPI, DescriptionAPI, ResourceAPI
+from utils import authorization_required, api_description, add_property, add_action, logger, register_api
 
 
-@register_api(
+@api_description(
     description="Dummy resource api"
 )
 class DummyResourceAPI(ResourceAPI):
@@ -50,6 +50,8 @@ class DummyResourceAPI(ResourceAPI):
 # Run server
 app = Flask(__name__)
 BindAPI.add_url_rule(app)
+DescriptionAPI.add_url_rule(app)
 DummyResourceAPI.add_url_rule(app)
+register_api()
 
-# app.run(host='0.0.0.0', port=8001)
+app.run(host='0.0.0.0', port=8001)
