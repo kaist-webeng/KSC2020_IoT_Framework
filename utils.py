@@ -105,64 +105,84 @@ def resource_required(resource_description):
     return decorator
 
 
-def api_description(description):
+def api_description(description, primary=False):
     """
     api_description: a decorator for decorating API to construct description and register automatically
     :param description: description of the API
+    :param primary: whether api is primary (main) api or not
     :return:
     """
     def decorator(cls):
-        api_dict = {
-            "@context": [
-                "https://www.w3.org/2019/wot/td/v1",
-                {"@language": "en"}
-            ],
-            "id": "webeng:{name}:{id}".format(name=os.environ.get('NAME').lower(),
-                                              id=os.environ.get('ID')),
-            "title": "WebEng-{name}".format(name=os.environ.get('NAME')),
-            "url": os.environ.get('URL'),
-            "description": description,
-            "securityDefinitions": {
-                "nosec_sc": {
-                    "scheme": "nosec"
-                },
-                "basic_sc": {
-                    "scheme": "basic",
-                    "in": "header",
-                    "name": "USER-ID"
-                }
-            },
-            "security": "basic_sc",
-            "properties": {},
-            "actions": {}
-        }
-
-        for obj in vars(cls).values():
-            if callable(obj):
-                if hasattr(obj, "__property"):
-                    api_dict["properties"].update(getattr(obj, "__property"))
-                if hasattr(obj, "__action"):
-                    api_dict["actions"].update(getattr(obj, "__action"))
-        cls.description = api_dict
 
         # TODO hard-coded and duplicated call. Better to globally call once
         db = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
-        other_api_dict = json.loads(db.get('description'))
-        if description is None:
-            # Sub API
-            other_api_dict["actions"].update(api_dict["actions"])
-            other_api_dict["properties"].update(api_dict["properties"])
-            api_dict = other_api_dict
-        else:
-            # Main API
-            api_dict["actions"].update(other_api_dict["actions"])
-            api_dict["properties"].update(other_api_dict["properties"])
+        if primary:
+            # Primary/main API
+            api_dict = {
+                "@context": [
+                    "https://www.w3.org/2019/wot/td/v1",
+                    {"@language": "en"}
+                ],
+                "id": "webeng:{name}:{id}".format(name=os.environ.get('NAME').lower(),
+                                                  id=os.environ.get('ID')),
+                "title": "WebEng-{name}".format(name=os.environ.get('NAME')),
+                "url": os.environ.get('URL'),
+                "description": description,
+                "securityDefinitions": {
+                    "nosec_sc": {
+                        "scheme": "nosec"
+                    },
+                    "basic_sc": {
+                        "scheme": "basic",
+                        "in": "header",
+                        "name": "USER-ID"
+                    }
+                },
+                "security": "basic_sc"
+            }
+            db.set('description', json.dumps(api_dict))
 
-        db.set('description', json.dumps(api_dict))
+        if db.get('actions'):
+            actions_dict = json.loads(db.get('actions'))
+        else:
+            actions_dict = {}
+
+        if db.get('properties'):
+            properties_dict = json.loads(db.get('properties'))
+        else:
+            properties_dict = {}
+
+        for obj in vars(cls).values():
+            if callable(obj):
+                if hasattr(obj, "__property"):
+                    actions_dict.update(getattr(obj, "__property"))
+                if hasattr(obj, "__action"):
+                    properties_dict.update(getattr(obj, "__action"))
+
+        db.set('properties', json.dumps(properties_dict))
+        db.set('actions', json.dumps(actions_dict))
 
         return cls
     return decorator
+
+
+def get_description(db):
+    """
+    get_description: get the description stored in redis server
+    :param db: database redis server to get description
+    :return:
+    """
+    description = db.get("description")
+    assert description
+    api_dict = json.loads(description)
+    properties_dict = json.loads(db.get('properties'))
+    actions_dict = json.loads(db.get('actions'))
+
+    api_dict['properties'] = properties_dict
+    api_dict['actions'] = actions_dict
+
+    return api_dict
 
 
 def register_api():
@@ -170,11 +190,10 @@ def register_api():
     register_api: register the description of APIs stored in redis server
     :return:
     """
-    db = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
-    api_dict = db.get("description")
+    api_dict = get_description(redis.Redis(host='localhost', port=6379, db=0, decode_responses=True))  # TODO hard-code
     # TODO scheme
     data = {
-        "raw_description": api_dict
+        "raw_description": json.dumps(api_dict)
     }
 
     # TODO url hard-coded

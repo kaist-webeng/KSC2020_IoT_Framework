@@ -20,7 +20,7 @@ from abc import abstractmethod
 from flask import request, jsonify, make_response
 from flask.views import MethodView
 
-from utils import abort_json, authentication_required, authorization_required, api_description, add_property, add_action
+from utils import abort_json, authentication_required, authorization_required, api_description, add_property, add_action, get_description
 
 
 class API(MethodView):
@@ -41,7 +41,7 @@ class DescriptionAPI(API):
         get: responses description of the service or resource
         :return:
         """
-        return make_response(self.redis.get('description'), HTTPStatus.OK)
+        return make_response(jsonify(get_description(self.redis)), HTTPStatus.OK)
 
     @staticmethod
     def add_url_rule(_app):

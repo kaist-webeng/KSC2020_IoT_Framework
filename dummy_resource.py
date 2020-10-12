@@ -5,7 +5,8 @@ from utils import authorization_required, api_description, add_property, add_act
 
 
 @api_description(
-    description="Dummy resource api"
+    description="Dummy resource api",
+    primary=True
 )
 class DummyResourceAPI(ResourceAPI):
     @add_property(
@@ -54,4 +55,4 @@ DescriptionAPI.add_url_rule(app)
 DummyResourceAPI.add_url_rule(app)
 register_api()
 
-app.run(host='0.0.0.0', port=8001)
+# app.run(host='0.0.0.0', port=8001)
