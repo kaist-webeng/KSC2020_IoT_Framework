@@ -44,5 +44,13 @@ You can copy `dummy_resource.py`, or `dummy_service.py` and following below inst
 - `docker rm $(docker ps -a -q)` removes all docker containers
 
 ---
+### To allow CORS
+```
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
+```
+---
 ### Notes
 - Containers cannot communicate directly to each other. Be cautious

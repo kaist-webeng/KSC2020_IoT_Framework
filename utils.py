@@ -9,6 +9,10 @@ from functools import wraps
 from flask import abort, request, jsonify, make_response
 
 
+# TODO hard-coded and duplicated call. Better to globally call once
+db = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+
+
 def abort_json(status_code, error_message):
     response = make_response(jsonify({
         "errorMessage": error_message
@@ -113,10 +117,6 @@ def api_description(description, primary=False):
     :return:
     """
     def decorator(cls):
-
-        # TODO hard-coded and duplicated call. Better to globally call once
-        db = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
-
         if primary:
             # Primary/main API
             api_dict = {
@@ -143,46 +143,26 @@ def api_description(description, primary=False):
             }
             db.set('description', json.dumps(api_dict))
 
-        if db.get('actions'):
-            actions_dict = json.loads(db.get('actions'))
-        else:
-            actions_dict = {}
-
-        if db.get('properties'):
-            properties_dict = json.loads(db.get('properties'))
-        else:
-            properties_dict = {}
-
-        for obj in vars(cls).values():
-            if callable(obj):
-                if hasattr(obj, "__property"):
-                    actions_dict.update(getattr(obj, "__property"))
-                if hasattr(obj, "__action"):
-                    properties_dict.update(getattr(obj, "__action"))
-
-        db.set('properties', json.dumps(properties_dict))
-        db.set('actions', json.dumps(actions_dict))
-
         return cls
     return decorator
 
 
-def get_description(db):
+def get_description():
     """
     get_description: get the description stored in redis server
-    :param db: database redis server to get description
     :return:
     """
     description = db.get("description")
-    assert description
-    api_dict = json.loads(description)
-    properties_dict = json.loads(db.get('properties'))
-    actions_dict = json.loads(db.get('actions'))
+    if description:
+        api_dict = json.loads(description)
+        properties_dict = json.loads(db.get('properties'))
+        actions_dict = json.loads(db.get('actions'))
 
-    api_dict['properties'] = properties_dict
-    api_dict['actions'] = actions_dict
+        api_dict['properties'] = properties_dict
+        api_dict['actions'] = actions_dict
 
-    return api_dict
+        return api_dict
+    return None
 
 
 def register_api():
@@ -190,14 +170,16 @@ def register_api():
     register_api: register the description of APIs stored in redis server
     :return:
     """
-    api_dict = get_description(redis.Redis(host='localhost', port=6379, db=0, decode_responses=True))  # TODO hard-code
-    # TODO scheme
-    data = {
-        "raw_description": json.dumps(api_dict)
-    }
+    api_dict = get_description()
 
-    # TODO url hard-coded
-    requests.post(url='http://143.248.47.96:8000/api/services/', data=data)
+    if api_dict:
+        # TODO scheme
+        data = {
+            "raw_description": json.dumps(api_dict)
+        }
+
+        # TODO url hard-coded
+        requests.post(url='http://143.248.47.96:8000/api/services/', data=data)
 
 
 def add_property(name, title, description, properties, path, security="basic_sc"):
@@ -212,7 +194,7 @@ def add_property(name, title, description, properties, path, security="basic_sc"
     :return: None
     """
     def decorator(f):
-        property_dict = {
+        new_property_dict = {
             name: {
                 "title": title,
                 "type": "object",
@@ -226,7 +208,17 @@ def add_property(name, title, description, properties, path, security="basic_sc"
                 }]
             }
         }
-        f.__property = property_dict
+        f.__property = new_property_dict
+
+        properties_dict = db.get('properties')
+        if properties_dict:
+            properties_dict = json.loads(properties_dict)
+        else:
+            properties_dict = {}
+
+        properties_dict.update(new_property_dict)
+        db.set('properties', json.dumps(properties_dict))
+
         return f
     return decorator
 
@@ -244,7 +236,7 @@ def add_action(name, title, description, output, path, security="basic_sc", inpu
     :return: None
     """
     def decorator(f):
-        action_dict = {
+        new_action_dict = {
             name: {
                 "title": title,
                 "type": "object",
@@ -263,12 +255,22 @@ def add_action(name, title, description, output, path, security="basic_sc", inpu
         }
         
         if input is not None:
-            action_dict[name]["input"] = {
+            new_action_dict[name]["input"] = {
                 "type": "object",
                 "properties": input
             }
 
-        f.__action = action_dict
+        f.__action = new_action_dict
+
+        actions_dict = db.get('actions')
+        if actions_dict:
+            actions_dict = json.loads(actions_dict)
+        else:
+            actions_dict = {}
+
+        actions_dict.update(new_action_dict)
+        db.set('actions', json.dumps(actions_dict))
+
         return f
     return decorator
 

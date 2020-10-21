@@ -41,7 +41,7 @@ class DescriptionAPI(API):
         get: responses description of the service or resource
         :return:
         """
-        return make_response(jsonify(get_description(self.redis)), HTTPStatus.OK)
+        return make_response(jsonify(get_description()), HTTPStatus.OK)
 
     @staticmethod
     def add_url_rule(_app):
@@ -112,15 +112,7 @@ class BindAPI(API):
         name="bind",
         title="Bind resource",
         description="It binds the resource to the user who requested it",
-        output={
-            "type": "object",
-            "properties": {
-                "userId": {
-                    "type": "string"
-                }
-            },
-            "required": ["userId"]
-        },
+        output={"userId": {"type": "string"}},
         path="/user/bind"
     )
     @authentication_required
@@ -145,15 +137,7 @@ class BindAPI(API):
         name="unbind",
         title="Unbind resource",
         description="It unbinds the user currently bound to the resource",
-        output={
-            "type": "object",
-            "properties": {
-                "userId": {
-                    "type": "string"
-                }
-            },
-            "required": ["userId"]
-        },
+        output={"userId": {"type": "string"}},
         path="/user/unbind"
     )
     @authorization_required
