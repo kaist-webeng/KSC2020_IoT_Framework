@@ -55,9 +55,6 @@ class DescriptionAPI(API):
         _app.add_url_rule('/', view_func=view, methods=['GET', ])
 
 
-@api_description(
-    description=None
-)
 class BindAPI(API):
     """
     BindAPI: API for bind/unbind user to the service or resource

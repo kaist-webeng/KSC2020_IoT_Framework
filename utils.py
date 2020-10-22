@@ -109,39 +109,36 @@ def resource_required(resource_description):
     return decorator
 
 
-def api_description(description, primary=False):
+def api_description(description):
     """
     api_description: a decorator for decorating API to construct description and register automatically
     :param description: description of the API
-    :param primary: whether api is primary (main) api or not
     :return:
     """
     def decorator(cls):
-        if primary:
-            # Primary/main API
-            api_dict = {
-                "@context": [
-                    "https://www.w3.org/2019/wot/td/v1",
-                    {"@language": "en"}
-                ],
-                "id": "webeng:{name}:{id}".format(name=os.environ.get('NAME').lower(),
-                                                  id=os.environ.get('ID')),
-                "title": "WebEng-{name}".format(name=os.environ.get('NAME')),
-                "url": os.environ.get('URL'),
-                "description": description,
-                "securityDefinitions": {
-                    "nosec_sc": {
-                        "scheme": "nosec"
-                    },
-                    "basic_sc": {
-                        "scheme": "basic",
-                        "in": "header",
-                        "name": "USER-ID"
-                    }
+        api_dict = {
+            "@context": [
+                "https://www.w3.org/2019/wot/td/v1",
+                {"@language": "en"}
+            ],
+            "id": "webeng:{name}:{id}".format(name=os.environ.get('NAME').lower(),
+                                              id=os.environ.get('ID')),
+            "title": "WebEng-{name}".format(name=os.environ.get('NAME')),
+            "url": os.environ.get('URL'),
+            "description": description,
+            "securityDefinitions": {
+                "nosec_sc": {
+                    "scheme": "nosec"
                 },
-                "security": "basic_sc"
-            }
-            db.set('description', json.dumps(api_dict))
+                "basic_sc": {
+                    "scheme": "basic",
+                    "in": "header",
+                    "name": "USER-ID"
+                }
+            },
+            "security": "basic_sc"
+        }
+        db.set('description', json.dumps(api_dict))
 
         return cls
     return decorator

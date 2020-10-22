@@ -6,8 +6,7 @@ from flask_cors import CORS
 
 
 @api_description(
-    description="Dummy resource api",
-    primary=True
+    description="Dummy resource api"
 )
 class DummyResourceAPI(ResourceAPI):
     @add_property(
